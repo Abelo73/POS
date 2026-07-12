@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: novapos-backend
+
+  profiles:
+    default: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/novapos
+    username: novapos
+    password: ${NOVAPOS_DB_PASSWORD:novapos}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: public
+
+  flyway:
+    enabled: true
+    locations:
+      - classpath:db/migration/company
+      - classpath:db/migration/user_access
+      - classpath:db/migration/catalog
+      - classpath:db/migration/inventory
+      - classpath:db/migration/pos
+      - classpath:db/migration/purchasing
+      - classpath:db/migration/customer
+      - classpath:db/migration/promotion
+      - classpath:db/migration/accounting
+      - classpath:db/migration/restaurant
+
+novapos:
+  modules:
+    restaurant:
+      enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  flyway:
+    clean-disabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:tc:postgresql:16:///novapos
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+
+---
+spring:
+  config:
+    activate:
+      on-profile: staging
+  flyway:
+    clean-disabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  flyway:
+    clean-disabled: true
