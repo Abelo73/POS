@@ -1,5 +1,7 @@
 package com.novapos.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -74,22 +76,21 @@ class ModuleBoundaryTest {
     @DisplayName("Only module.api packages may be imported by other modules")
     void onlyApiPackagesMayBeImportedAcrossModules() {
         for (String module : MODULES) {
+            DescribedPredicate<JavaClass> allowedTarget = JavaClass.Predicates
+                    .resideOutsideOfPackage(BASE_PACKAGE + "..")
+                    .or(JavaClass.Predicates.resideInAPackage(BASE_PACKAGE + ".shared.."))
+                    .or(JavaClass.Predicates.resideInAPackage(BASE_PACKAGE + "." + module + ".."))
+                    .or(JavaClass.Predicates.resideInAnyPackage(
+                            MODULES.stream()
+                                    .filter(m -> !m.equals(module))
+                                    .map(m -> BASE_PACKAGE + "." + m + ".api..")
+                                    .toArray(String[]::new)));
+
             ArchRule rule = classes()
                     .that().resideInAPackage(BASE_PACKAGE + "." + module + "..")
                     .and().resideOutsideOfPackage(BASE_PACKAGE + "." + module + ".api..")
                     .and().resideOutsideOfPackage(BASE_PACKAGE + ".shared..")
-                    .should().onlyAccessClassesThat()
-                    .resideOutsideOfPackage(BASE_PACKAGE + "..")
-                    .orShould().onlyAccessClassesThat()
-                    .resideInAPackage(BASE_PACKAGE + ".shared..")
-                    .orShould().onlyAccessClassesThat()
-                    .resideInAPackage(BASE_PACKAGE + "." + module + "..")
-                    .orShould().onlyAccessClassesThat()
-                    .resideInAnyPackage(
-                            MODULES.stream()
-                                    .filter(m -> !m.equals(module))
-                                    .map(m -> BASE_PACKAGE + "." + m + ".api..")
-                                    .toArray(String[]::new))
+                    .should().onlyAccessClassesThat(allowedTarget)
                     .allowEmptyShould(true);
             rule.check(importedClasses);
         }
