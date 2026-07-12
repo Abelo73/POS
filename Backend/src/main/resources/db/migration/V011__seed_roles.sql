@@ -1,0 +1,18 @@
+insert into user_access.role (id, name, description) values
+    (gen_random_uuid(), 'SUPER_ADMIN', 'Full platform-wide access across all companies'),
+    (gen_random_uuid(), 'SUPPORT_ENGINEER', 'Time-boxed platform access scoped to one company per support ticket'),
+    (gen_random_uuid(), 'COMPANY_OWNER', 'Full control of company configuration, staff, branches, and finances'),
+    (gen_random_uuid(), 'REGIONAL_MANAGER', 'Oversight and performance management across an assigned subset of branches'),
+    (gen_random_uuid(), 'BRANCH_MANAGER', 'Full operational authority over a single branch including staff and approvals'),
+    (gen_random_uuid(), 'CASHIER', 'Runs the checkout counter at a single branch'),
+    (gen_random_uuid(), 'SALESPERSON', 'Customer-facing sales support for quotes, B2B orders, commission-tracked sales'),
+    (gen_random_uuid(), 'INVENTORY_OFFICER', 'Owns stock accuracy at assigned branches, manages cycle counts'),
+    (gen_random_uuid(), 'STOREKEEPER', 'Handles physical receiving, put-away, and picking in a warehouse'),
+    (gen_random_uuid(), 'WAREHOUSE_MANAGER', 'Owns warehouse KPIs, approves transfers Storekeepers execute'),
+    (gen_random_uuid(), 'PURCHASING_OFFICER', 'Owns buy-side supplier relationships and purchase order management'),
+    (gen_random_uuid(), 'ACCOUNTANT', 'Full access to Accounting module, no operational POS/inventory write access'),
+    (gen_random_uuid(), 'HR_MANAGER', 'Manages staff records and shift-adjacent data at company scope'),
+    (gen_random_uuid(), 'AUDITOR', 'Read-only access across financial and operational logs for compliance'),
+    (gen_random_uuid(), 'SYSTEM_ADMINISTRATOR', 'Technical configuration, integrations, and user provisioning'),
+    (gen_random_uuid(), 'CUSTOMER', 'Self-service access to own orders, loyalty points, and store credit'),
+    (gen_random_uuid(), 'SUPPLIER', 'Self-service access to own purchase orders and invoices');
