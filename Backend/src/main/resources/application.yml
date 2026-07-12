@@ -24,6 +24,12 @@ spring:
     locations:
       - classpath:db/migration
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
 novapos:
   modules:
     restaurant:
@@ -63,3 +69,9 @@ spring:
       on-profile: prod
   flyway:
     clean-disabled: true
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
