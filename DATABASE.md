@@ -3,7 +3,7 @@
 ## 1. Conventions
 
 - **One PostgreSQL database, one schema per module** (`pos`, `inventory`, `catalog`, `accounting`, etc.) using Postgres native schemas — not just a naming prefix. This gives the module-boundary rule in `ARCHITECTURE.md` a real database-level enforcement point: a Postgres role can be granted access to only the schemas its service needs, and it's a straightforward step to give each module its own physical database at Phase 2 extraction time.
-- **Flyway** manages migrations, one file set per module, named `db/migration/<module>/V<version>__<description>.sql` (e.g. `db/migration/inventory/V1__create_stock_movement.sql`). Flyway is configured with multiple locations, one per module schema.
+- **Flyway** manages migrations in a single `db/migration/` folder with globally unique version numbers. Migration files are named `db/migration/V<index>__<module>_<description>.sql` where `<index>` is a sequential 3-digit number (001, 002, ...) unique across all modules, `<module>` is the owning module name, and `<description>` describes the change (e.g. `db/migration/V012__inventory_create_stock_movement.sql`). Flyway 10.x combines all locations into a single version sequence, so a flat directory with globally-unique versions is used to avoid version conflicts.
 - **Primary keys**: `uuid`, generated application-side (`UUID.randomUUID()`) or via `gen_random_uuid()` (pgcrypto), never serial/identity — avoids exposing sequential IDs and simplifies offline-client-generated IDs for POS (see `sale.client_uuid` below).
 - **Money**: stored as `bigint` in minor units (cents), never `numeric`/`float` for currency math in application code — conversion to a display value happens at the API boundary only.
 - **Timestamps**: `timestamptz`, always UTC. Every table has `created_at timestamptz not null default now()`, `updated_at timestamptz not null default now()` (updated via trigger or `@PreUpdate`), and `deleted_at timestamptz` nullable for soft delete.
@@ -368,6 +368,6 @@ create table restaurant.recipe_line (
 
 ## 12. Migration Workflow
 
-1. Every schema change ships as a new Flyway file under its module's folder — never edit a previously applied migration.
+1. Every schema change ships as a new Flyway file in `db/migration/` with a globally unique version number and module prefix — never edit a previously applied migration.
 2. `mvn flyway:migrate` runs automatically on app startup in `local`/`test` profiles; in `staging`/`prod`, migrations run as an explicit CI/CD step before the new app version deploys.
 3. Every migration is reviewed for: correct schema (module ownership), no cross-schema FK, money as `bigint`, `created_at`/`updated_at`/`deleted_at` present on transactional tables.

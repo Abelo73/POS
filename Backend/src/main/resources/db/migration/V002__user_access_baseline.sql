@@ -1,0 +1,1 @@
+-- Baseline migration for user_access schema

@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: novapos-postgres
+    environment:
+      POSTGRES_USER: novapos
+      POSTGRES_PASSWORD: novapos
+      POSTGRES_DB: novapos
+    ports:
+      - "5433:5432"
+    volumes:
+      - novapos-pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novapos -d novapos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  novapos-pgdata:
+    driver: local
