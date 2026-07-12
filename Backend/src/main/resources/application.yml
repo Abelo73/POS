@@ -34,6 +34,10 @@ novapos:
   modules:
     restaurant:
       enabled: false
+  jwt:
+    secret: ${NOVAPOS_JWT_SECRET:novapos-dev-secret-key-change-in-production}
+    access-token-expiry: 900
+    refresh-token-expiry: 86400
 
 ---
 spring:

@@ -18,4 +18,6 @@ public interface UserFacade {
     List<AppUserDto> getUsersByCompany(UUID companyId);
 
     List<RoleDto> getAllRoles();
+
+    void setPassword(UUID userId, String rawPassword);
 }

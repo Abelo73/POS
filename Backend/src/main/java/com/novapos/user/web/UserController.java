@@ -6,10 +6,12 @@ import com.novapos.user.api.dto.RoleDto;
 import com.novapos.user.web.dto.AssignRoleRequest;
 import com.novapos.user.web.dto.CreateUserRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,8 +53,16 @@ class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{userId}/password")
+    ResponseEntity<Void> setPassword(@PathVariable UUID userId, @Valid @RequestBody SetPasswordRequest request) {
+        userFacade.setPassword(userId, request.password());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     ResponseEntity<List<RoleDto>> getAllRoles() {
         return ResponseEntity.ok(userFacade.getAllRoles());
     }
+
+    record SetPasswordRequest(@NotBlank String password) {}
 }

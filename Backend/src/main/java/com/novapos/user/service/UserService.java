@@ -11,6 +11,7 @@ import com.novapos.user.repository.AppUserRepository;
 import com.novapos.user.repository.RoleRepository;
 import com.novapos.user.repository.UserRoleAssignmentRepository;
 import com.novapos.user.web.UserException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,11 +26,14 @@ class UserService implements UserFacade {
     private final AppUserRepository appUserRepository;
     private final RoleRepository roleRepository;
     private final UserRoleAssignmentRepository assignmentRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    UserService(AppUserRepository appUserRepository, RoleRepository roleRepository, UserRoleAssignmentRepository assignmentRepository) {
+    UserService(AppUserRepository appUserRepository, RoleRepository roleRepository,
+                UserRoleAssignmentRepository assignmentRepository, PasswordEncoder passwordEncoder) {
         this.appUserRepository = appUserRepository;
         this.roleRepository = roleRepository;
         this.assignmentRepository = assignmentRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -74,6 +78,14 @@ class UserService implements UserFacade {
         return roleRepository.findAll().stream()
                 .map(r -> new RoleDto(r.getId(), r.getName(), r.getDescription()))
                 .toList();
+    }
+
+    @Override
+    public void setPassword(UUID userId, String rawPassword) {
+        var user = appUserRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> UserException.notFound(userId));
+        user.setPasswordHash(passwordEncoder.encode(rawPassword));
+        appUserRepository.save(user);
     }
 
     private AppUserDto toDto(AppUser user, List<UserRoleAssignment> assignments) {
