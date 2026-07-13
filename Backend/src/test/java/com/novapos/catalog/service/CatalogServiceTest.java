@@ -1,10 +1,13 @@
 package com.novapos.catalog.service;
 
+import com.novapos.catalog.domain.BranchPriceOverride;
 import com.novapos.catalog.domain.Brand;
 import com.novapos.catalog.domain.Category;
 import com.novapos.catalog.domain.Product;
 import com.novapos.catalog.domain.ProductVariant;
+import com.novapos.catalog.repository.BranchPriceOverrideRepository;
 import com.novapos.catalog.repository.BrandRepository;
+import com.novapos.catalog.repository.BundleComponentRepository;
 import com.novapos.catalog.repository.CategoryRepository;
 import com.novapos.catalog.repository.ProductRepository;
 import com.novapos.catalog.repository.ProductVariantRepository;
@@ -37,6 +40,10 @@ class CatalogServiceTest {
     private ProductRepository productRepository;
     @Mock
     private ProductVariantRepository productVariantRepository;
+    @Mock
+    private BranchPriceOverrideRepository branchPriceOverrideRepository;
+    @Mock
+    private BundleComponentRepository bundleComponentRepository;
 
     @InjectMocks
     private CatalogService catalogService;
@@ -175,5 +182,76 @@ class CatalogServiceTest {
 
         assertThat(dto.name()).isEqualTo("Nike");
         assertThat(dto.companyId()).isEqualTo(companyId);
+    }
+
+    @Test
+    @DisplayName("getEffectivePrice returns branch override when it exists")
+    void effectivePriceReturnsBranchOverride() {
+        var variantId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var branchId = UUID.randomUUID();
+        var variant = new ProductVariant(productId, "Large", null, null);
+        var product = new Product(UUID.randomUUID(), "SKU", "Product", 1000L, "USD", "STANDARD");
+        var override = new BranchPriceOverride(productId, branchId, 1500L);
+
+        when(productVariantRepository.findByIdAndDeletedAtIsNull(variantId)).thenReturn(Optional.of(variant));
+        when(branchPriceOverrideRepository.findByProductIdAndBranchId(productId, branchId)).thenReturn(Optional.of(override));
+        when(productRepository.findByIdAndDeletedAtIsNull(productId)).thenReturn(Optional.of(product));
+
+        var result = catalogService.getEffectivePrice(variantId, branchId);
+
+        assertThat(result.priceMinor()).isEqualTo(1500L);
+        assertThat(result.source()).isEqualTo("BRANCH_OVERRIDE");
+    }
+
+    @Test
+    @DisplayName("getEffectivePrice falls back to variant override when no branch override")
+    void effectivePriceFallsBackToVariantOverride() {
+        var variantId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var branchId = UUID.randomUUID();
+        var variant = new ProductVariant(productId, "Large", null, 1200L);
+        var product = new Product(UUID.randomUUID(), "SKU", "Product", 1000L, "USD", "STANDARD");
+
+        when(productVariantRepository.findByIdAndDeletedAtIsNull(variantId)).thenReturn(Optional.of(variant));
+        when(branchPriceOverrideRepository.findByProductIdAndBranchId(productId, branchId)).thenReturn(Optional.empty());
+        when(productRepository.findByIdAndDeletedAtIsNull(productId)).thenReturn(Optional.of(product));
+
+        var result = catalogService.getEffectivePrice(variantId, branchId);
+
+        assertThat(result.priceMinor()).isEqualTo(1200L);
+        assertThat(result.source()).isEqualTo("VARIANT_OVERRIDE");
+    }
+
+    @Test
+    @DisplayName("getEffectivePrice falls back to base price when no overrides")
+    void effectivePriceFallsBackToBasePrice() {
+        var variantId = UUID.randomUUID();
+        var productId = UUID.randomUUID();
+        var branchId = UUID.randomUUID();
+        var variant = new ProductVariant(productId, "Large", null, null);
+        var product = new Product(UUID.randomUUID(), "SKU", "Product", 1000L, "USD", "STANDARD");
+
+        when(productVariantRepository.findByIdAndDeletedAtIsNull(variantId)).thenReturn(Optional.of(variant));
+        when(branchPriceOverrideRepository.findByProductIdAndBranchId(productId, branchId)).thenReturn(Optional.empty());
+        when(productRepository.findByIdAndDeletedAtIsNull(productId)).thenReturn(Optional.of(product));
+
+        var result = catalogService.getEffectivePrice(variantId, branchId);
+
+        assertThat(result.priceMinor()).isEqualTo(1000L);
+        assertThat(result.source()).isEqualTo("BASE_PRICE");
+    }
+
+    @Test
+    @DisplayName("getBundleBreakdown throws NOT_A_BUNDLE for non-composite product")
+    void bundleBreakdownThrowsForNonComposite() {
+        var productId = UUID.randomUUID();
+        var product = new Product(UUID.randomUUID(), "SKU", "Product", 1000L, "USD", "STANDARD");
+
+        when(productRepository.findByIdAndDeletedAtIsNull(productId)).thenReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> catalogService.getBundleBreakdown(productId))
+                .isInstanceOf(CatalogException.class)
+                .hasFieldOrPropertyWithValue("code", "NOT_A_BUNDLE");
     }
 }

@@ -2,9 +2,13 @@ package com.novapos.catalog.web;
 
 import com.novapos.catalog.api.CatalogFacade;
 import com.novapos.catalog.api.dto.BrandDto;
+import com.novapos.catalog.api.dto.BundleBreakdownDto;
 import com.novapos.catalog.api.dto.CategoryDto;
+import com.novapos.catalog.api.dto.EffectivePriceDto;
 import com.novapos.catalog.api.dto.ProductDto;
 import com.novapos.catalog.api.dto.ProductVariantDto;
+import com.novapos.catalog.web.dto.AddBundleComponentRequest;
+import com.novapos.catalog.web.dto.BranchPriceOverrideRequest;
 import com.novapos.catalog.web.dto.CreateBrandRequest;
 import com.novapos.catalog.web.dto.CreateCategoryRequest;
 import com.novapos.catalog.web.dto.CreateProductRequest;
@@ -187,5 +191,34 @@ class CatalogController {
     @GetMapping("/products/{productId}/variants")
     ResponseEntity<List<ProductVariantDto>> getVariantsByProduct(@PathVariable UUID productId) {
         return ResponseEntity.ok(catalogFacade.getVariantsByProduct(productId));
+    }
+
+    @GetMapping("/variants/{variantId}/branches/{branchId}/effective-price")
+    ResponseEntity<EffectivePriceDto> getEffectivePrice(@PathVariable UUID variantId, @PathVariable UUID branchId) {
+        return ResponseEntity.ok(catalogFacade.getEffectivePrice(variantId, branchId));
+    }
+
+    @PutMapping("/products/{productId}/branches/{branchId}/price-override")
+    ResponseEntity<Void> upsertBranchPriceOverride(@PathVariable UUID productId, @PathVariable UUID branchId,
+                                                    @RequestBody BranchPriceOverrideRequest request) {
+        catalogFacade.upsertBranchPriceOverride(productId, branchId, request.priceMinor());
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/products/{productId}/bundle-breakdown")
+    ResponseEntity<BundleBreakdownDto> getBundleBreakdown(@PathVariable UUID productId) {
+        return ResponseEntity.ok(catalogFacade.getBundleBreakdown(productId));
+    }
+
+    @PostMapping("/products/{productId}/bundle-components")
+    ResponseEntity<Void> addBundleComponent(@PathVariable UUID productId, @Valid @RequestBody AddBundleComponentRequest request) {
+        catalogFacade.addBundleComponent(productId, request.componentProductId(), request.quantity());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/products/{productId}/bundle-components/{componentProductId}")
+    ResponseEntity<Void> removeBundleComponent(@PathVariable UUID productId, @PathVariable UUID componentProductId) {
+        catalogFacade.removeBundleComponent(productId, componentProductId);
+        return ResponseEntity.noContent().build();
     }
 }

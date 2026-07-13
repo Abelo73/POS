@@ -1,10 +1,13 @@
 package com.novapos.catalog.api;
 
 import com.novapos.catalog.api.dto.BrandDto;
+import com.novapos.catalog.api.dto.BundleBreakdownDto;
 import com.novapos.catalog.api.dto.CategoryDto;
+import com.novapos.catalog.api.dto.EffectivePriceDto;
 import com.novapos.catalog.api.dto.ProductDto;
 import com.novapos.catalog.api.dto.ProductVariantDto;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,4 +59,14 @@ public interface CatalogFacade {
     void deleteVariant(UUID variantId);
 
     List<ProductVariantDto> getVariantsByProduct(UUID productId);
+
+    EffectivePriceDto getEffectivePrice(UUID productVariantId, UUID branchId);
+
+    void upsertBranchPriceOverride(UUID productId, UUID branchId, long priceMinor);
+
+    BundleBreakdownDto getBundleBreakdown(UUID productId);
+
+    void addBundleComponent(UUID bundleProductId, UUID componentProductId, BigDecimal quantity);
+
+    void removeBundleComponent(UUID bundleProductId, UUID componentProductId);
 }

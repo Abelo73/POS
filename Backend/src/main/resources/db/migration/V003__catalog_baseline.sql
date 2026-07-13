@@ -25,7 +25,7 @@ create table catalog.product (
     category_id     uuid references catalog.category(id),
     brand_id        uuid references catalog.brand(id),
     base_price_minor bigint not null,
-    currency        char(3) not null,
+    currency        varchar(3) not null,
     tax_class       text not null default 'STANDARD',
     track_inventory boolean not null default true,
     costing_method  text not null default 'FIFO',

@@ -2,14 +2,21 @@ package com.novapos.catalog.service;
 
 import com.novapos.catalog.api.CatalogFacade;
 import com.novapos.catalog.api.dto.BrandDto;
+import com.novapos.catalog.api.dto.BundleBreakdownDto;
+import com.novapos.catalog.api.dto.BundleComponentDto;
 import com.novapos.catalog.api.dto.CategoryDto;
+import com.novapos.catalog.api.dto.EffectivePriceDto;
 import com.novapos.catalog.api.dto.ProductDto;
 import com.novapos.catalog.api.dto.ProductVariantDto;
 import com.novapos.catalog.domain.Brand;
+import com.novapos.catalog.domain.BranchPriceOverride;
+import com.novapos.catalog.domain.BundleComponent;
 import com.novapos.catalog.domain.Category;
 import com.novapos.catalog.domain.Product;
 import com.novapos.catalog.domain.ProductVariant;
+import com.novapos.catalog.repository.BranchPriceOverrideRepository;
 import com.novapos.catalog.repository.BrandRepository;
+import com.novapos.catalog.repository.BundleComponentRepository;
 import com.novapos.catalog.repository.CategoryRepository;
 import com.novapos.catalog.repository.ProductRepository;
 import com.novapos.catalog.repository.ProductVariantRepository;
@@ -17,6 +24,7 @@ import com.novapos.catalog.web.CatalogException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -30,13 +38,19 @@ class CatalogService implements CatalogFacade {
     private final BrandRepository brandRepository;
     private final ProductRepository productRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final BranchPriceOverrideRepository branchPriceOverrideRepository;
+    private final BundleComponentRepository bundleComponentRepository;
 
     CatalogService(CategoryRepository categoryRepository, BrandRepository brandRepository,
-                   ProductRepository productRepository, ProductVariantRepository productVariantRepository) {
+                   ProductRepository productRepository, ProductVariantRepository productVariantRepository,
+                   BranchPriceOverrideRepository branchPriceOverrideRepository,
+                   BundleComponentRepository bundleComponentRepository) {
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
+        this.branchPriceOverrideRepository = branchPriceOverrideRepository;
+        this.bundleComponentRepository = bundleComponentRepository;
     }
 
     @Override
@@ -259,6 +273,84 @@ class CatalogService implements CatalogFacade {
                 .toList();
     }
 
+    @Override
+    public EffectivePriceDto getEffectivePrice(UUID productVariantId, UUID branchId) {
+        var variant = productVariantRepository.findByIdAndDeletedAtIsNull(productVariantId)
+                .orElseThrow(() -> CatalogException.variantNotFound(productVariantId));
+
+        var override = branchPriceOverrideRepository.findByProductIdAndBranchId(variant.getProductId(), branchId);
+        if (override.isPresent()) {
+            var product = productRepository.findByIdAndDeletedAtIsNull(variant.getProductId())
+                    .orElseThrow(() -> CatalogException.productNotFound(variant.getProductId()));
+            return new EffectivePriceDto(productVariantId, variant.getProductId(),
+                    override.get().getPriceMinor(), product.getCurrency(), "BRANCH_OVERRIDE");
+        }
+
+        if (variant.getPriceOverrideMinor() != null) {
+            var product = productRepository.findByIdAndDeletedAtIsNull(variant.getProductId())
+                    .orElseThrow(() -> CatalogException.productNotFound(variant.getProductId()));
+            return new EffectivePriceDto(productVariantId, variant.getProductId(),
+                    variant.getPriceOverrideMinor(), product.getCurrency(), "VARIANT_OVERRIDE");
+        }
+
+        var product = productRepository.findByIdAndDeletedAtIsNull(variant.getProductId())
+                .orElseThrow(() -> CatalogException.productNotFound(variant.getProductId()));
+        return new EffectivePriceDto(productVariantId, variant.getProductId(),
+                product.getBasePriceMinor(), product.getCurrency(), "BASE_PRICE");
+    }
+
+    @Override
+    public void upsertBranchPriceOverride(UUID productId, UUID branchId, long priceMinor) {
+        productRepository.findByIdAndDeletedAtIsNull(productId)
+                .orElseThrow(() -> CatalogException.productNotFound(productId));
+
+        var existing = branchPriceOverrideRepository.findByProductIdAndBranchId(productId, branchId);
+        if (existing.isPresent()) {
+            var override = existing.get();
+            override.setPriceMinor(priceMinor);
+            override.markUpdated();
+            branchPriceOverrideRepository.save(override);
+        } else {
+            var override = new BranchPriceOverride(productId, branchId, priceMinor);
+            branchPriceOverrideRepository.save(override);
+        }
+    }
+
+    @Override
+    public BundleBreakdownDto getBundleBreakdown(UUID productId) {
+        var product = productRepository.findByIdAndDeletedAtIsNull(productId)
+                .orElseThrow(() -> CatalogException.productNotFound(productId));
+        if (!product.isComposite()) {
+            throw CatalogException.notABundle(productId);
+        }
+
+        var components = bundleComponentRepository.findByBundleProductId(productId).stream()
+                .map(CatalogService::toDto)
+                .toList();
+
+        return new BundleBreakdownDto(product.getId(), product.getSku(), product.getName(), components);
+    }
+
+    @Override
+    public void addBundleComponent(UUID bundleProductId, UUID componentProductId, BigDecimal quantity) {
+        var bundleProduct = productRepository.findByIdAndDeletedAtIsNull(bundleProductId)
+                .orElseThrow(() -> CatalogException.productNotFound(bundleProductId));
+        if (!bundleProduct.isComposite()) {
+            throw CatalogException.notABundle(bundleProductId);
+        }
+
+        productRepository.findByIdAndDeletedAtIsNull(componentProductId)
+                .orElseThrow(() -> CatalogException.productNotFound(componentProductId));
+
+        var component = new BundleComponent(bundleProductId, componentProductId, quantity);
+        bundleComponentRepository.save(component);
+    }
+
+    @Override
+    public void removeBundleComponent(UUID bundleProductId, UUID componentProductId) {
+        bundleComponentRepository.deleteByBundleProductIdAndComponentProductId(bundleProductId, componentProductId);
+    }
+
     static CategoryDto toDto(Category category) {
         return new CategoryDto(
                 category.getId(),
@@ -303,6 +395,15 @@ class CatalogService implements CatalogFacade {
                 variant.getVariantName(),
                 variant.getBarcode(),
                 variant.getPriceOverrideMinor()
+        );
+    }
+
+    static BundleComponentDto toDto(BundleComponent component) {
+        return new BundleComponentDto(
+                component.getId(),
+                component.getBundleProductId(),
+                component.getComponentProductId(),
+                component.getQuantity()
         );
     }
 }

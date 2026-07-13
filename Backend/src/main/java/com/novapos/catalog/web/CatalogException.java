@@ -30,4 +30,8 @@ public class CatalogException extends NovaPosException {
     public static CatalogException duplicateSku(String sku, UUID companyId) {
         return new CatalogException("DUPLICATE_SKU", "SKU '" + sku + "' already exists for this company", HttpStatus.CONFLICT);
     }
+
+    public static CatalogException notABundle(UUID productId) {
+        return new CatalogException("NOT_A_BUNDLE", "Product is not a composite/bundle: " + productId, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
 }
