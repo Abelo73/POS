@@ -59,10 +59,17 @@ class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{userId}/pin")
+    ResponseEntity<Void> setPin(@PathVariable UUID userId, @Valid @RequestBody SetPinRequest request) {
+        userFacade.setPin(userId, request.pin());
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping
     ResponseEntity<List<RoleDto>> getAllRoles() {
         return ResponseEntity.ok(userFacade.getAllRoles());
     }
 
     record SetPasswordRequest(@NotBlank String password) {}
+    record SetPinRequest(@NotBlank String pin) {}
 }

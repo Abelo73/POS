@@ -88,6 +88,14 @@ class UserService implements UserFacade {
         appUserRepository.save(user);
     }
 
+    @Override
+    public void setPin(UUID userId, String rawPin) {
+        var user = appUserRepository.findByIdAndDeletedAtIsNull(userId)
+                .orElseThrow(() -> UserException.notFound(userId));
+        user.setPinHash(passwordEncoder.encode(rawPin));
+        appUserRepository.save(user);
+    }
+
     private AppUserDto toDto(AppUser user, List<UserRoleAssignment> assignments) {
         return new AppUserDto(
                 user.getId(),

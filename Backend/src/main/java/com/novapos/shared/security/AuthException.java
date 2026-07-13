@@ -20,4 +20,12 @@ public class AuthException extends NovaPosException {
     public static AuthException userNotActive() {
         return new AuthException("USER_NOT_ACTIVE", "This user account is deactivated.", HttpStatus.UNAUTHORIZED);
     }
+
+    public static AuthException mfaRequired() {
+        return new AuthException("MFA_REQUIRED", "MFA verification required for this account.", HttpStatus.UNAUTHORIZED);
+    }
+
+    public static AuthException invalidMfaCode() {
+        return new AuthException("INVALID_MFA_CODE", "Invalid MFA verification code.", HttpStatus.UNAUTHORIZED);
+    }
 }

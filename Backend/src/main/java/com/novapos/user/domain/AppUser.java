@@ -35,6 +35,9 @@ public class AppUser {
     @Column(name = "mfa_enabled", nullable = false)
     private boolean mfaEnabled;
 
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
@@ -118,6 +121,14 @@ public class AppUser {
 
     public void setMfaEnabled(boolean mfaEnabled) {
         this.mfaEnabled = mfaEnabled;
+    }
+
+    public String getMfaSecret() {
+        return mfaSecret;
+    }
+
+    public void setMfaSecret(String mfaSecret) {
+        this.mfaSecret = mfaSecret;
     }
 
     public boolean isActive() {

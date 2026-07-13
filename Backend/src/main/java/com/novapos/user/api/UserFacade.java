@@ -20,4 +20,6 @@ public interface UserFacade {
     List<RoleDto> getAllRoles();
 
     void setPassword(UUID userId, String rawPassword);
+
+    void setPin(UUID userId, String rawPin);
 }
